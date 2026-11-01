@@ -12,7 +12,7 @@ A Windows app for managing **imported songs** and **custom playlists** in *Dead 
 
 ## Install
 
-Download `DaDPlaylistManager.exe` and run it. There's no installer and nothing else to install: the .NET runtime and ffmpeg are both built in.
+Download **[DaDPlaylistManager.exe](https://github.com/Jam7170/DaDPlaylistManager/releases/latest/download/DaDPlaylistManager.exe)** from the [latest release](https://github.com/Jam7170/DaDPlaylistManager/releases/latest) and run it. (Windows may show a SmartScreen warning because the exe isn't code-signed; choose **More info → Run anyway**.) There's no installer and nothing else to install: the .NET runtime and ffmpeg are both built in.
 The app finds the game's data automatically at `%LOCALAPPDATA%\Pagoda\Saved`. If yours is elsewhere, use **Tools → Change game data folder**.
 
 > The game reads songs and playlists when it starts. **Restart Dead as Disco** to see changes.
