@@ -1,5 +1,8 @@
 # Dead as Disco Playlist Manager
 
+> [!WARNING]
+> **Vibe coded.** This project was made entirely with AI (Claude Code), from investigating the game's file formats to the code, tests and this README. A human chose the features and tested it in the game, but nobody has reviewed the code line by line. It edits the game's save data, so it backs files up before changing them, but use it at your own risk and keep your own backups of `%LOCALAPPDATA%\Pagoda\Saved`. It's a fan-made tool, not affiliated with Brain Jar Games.
+
 A Windows app for managing **imported songs** and **custom playlists** in *Dead as Disco*.
 
 - **Playlists:** create, rename, duplicate and delete playlists. Add songs by drag and drop, reorder them, sort, and toggle shuffle.
