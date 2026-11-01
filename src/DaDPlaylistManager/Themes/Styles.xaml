@@ -1,0 +1,113 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:conv="clr-namespace:DaDPlaylistManager.Converters">
+
+    <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+    <SolidColorBrush x:Key="DiscoPinkBrush" Color="#FF3CAC" />
+    <SolidColorBrush x:Key="DiscoCyanBrush" Color="#2BD2FF" />
+    <SolidColorBrush x:Key="WarningBannerBrush" Color="#3A2F12" />
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#C9A227" />
+    <SolidColorBrush x:Key="ErrorTextBrush" Color="#FF6B6B" />
+    <LinearGradientBrush x:Key="DiscoGradientBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Offset="0" Color="#FF3CAC" />
+        <GradientStop Offset="0.5" Color="#784BA0" />
+        <GradientStop Offset="1" Color="#2B86C5" />
+    </LinearGradientBrush>
+
+    <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
+    <conv:NullToVisibilityConverter x:Key="NullToVis" />
+    <conv:NotNullToVisibilityConverter x:Key="NotNullToVis" />
+    <conv:InverseBoolConverter x:Key="InverseBool" />
+    <conv:EqualityToBoolConverter x:Key="EqualityToBool" />
+
+    <Style x:Key="Icon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="IconLabel" TargetType="TextBlock">
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="SectionHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,14,0,6" />
+    </Style>
+
+    <Style x:Key="FieldLabel" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="Margin" Value="0,8,0,4" />
+    </Style>
+
+    <Style x:Key="Hint" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+    </Style>
+
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12" />
+    </Style>
+
+    <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Margin" Value="0,0,6,0" />
+        <Setter Property="Padding" Value="10,5" />
+    </Style>
+
+    <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+        <Setter Property="FontSize" Value="14" />
+    </Style>
+
+    <Style x:Key="AccentToolButton" TargetType="Button" BasedOn="{StaticResource ToolButton}">
+        <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+    </Style>
+
+    <!-- Checked toggle buttons: the default accent can be near-white, which hides the white label. -->
+    <SolidColorBrush x:Key="ToggleOnBrush" Color="#7A3DB8" />
+    <SolidColorBrush x:Key="ToggleOnHoverBrush" Color="#8C4FCC" />
+    <Style x:Key="DiscoToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+        <Style.Resources>
+            <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#7A3DB8" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#8C4FCC" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#7A3DB8" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="White" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="White" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="White" />
+        </Style.Resources>
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{StaticResource ToggleOnBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Readable selection colours for data grids (the default dark selection is light with grey text). -->
+    <SolidColorBrush x:Key="RowSelectedBrush" Color="#4A2F6B" />
+    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource RowSelectedBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource RowSelectedBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

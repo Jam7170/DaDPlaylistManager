@@ -1,0 +1,589 @@
+﻿<Window x:Class="DaDPlaylistManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:DaDPlaylistManager.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:MainViewModel}"
+        Title="Dead as Disco Playlist Manager"
+        Icon="Assets/app.ico"
+        Width="1280" Height="800" MinWidth="980" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True" Drop="Window_Drop" DragOver="Window_DragOver">
+
+    <Window.InputBindings>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveAllChangesCommand}" />
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+        <KeyBinding Key="Space" Modifiers="Control" Command="{Binding TogglePlayCommand}" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- Menu -->
+        <Menu DockPanel.Dock="Top" Padding="4,2">
+            <MenuItem Header="_File">
+                <MenuItem Header="Import _audio files…" Command="{Binding ImportAudioCommand}" />
+                <MenuItem Header="Import song _pack…" Command="{Binding ImportPackCommand}" />
+                <Separator />
+                <MenuItem Header="_Save all changes" InputGestureText="Ctrl+S" Command="{Binding SaveAllChangesCommand}" />
+                <MenuItem Header="_Reload from disk" InputGestureText="F5" Command="{Binding RefreshCommand}" />
+                <Separator />
+                <MenuItem Header="E_xit" Click="Exit_Click" />
+            </MenuItem>
+            <MenuItem Header="_Tools">
+                <MenuItem Header="Open game data folder" Command="{Binding OpenSavedFolderCommand}" />
+                <MenuItem Header="Open backups folder" Command="{Binding OpenBackupsFolderCommand}" />
+                <Separator />
+                <MenuItem Header="Change game data folder…" Command="{Binding ChangeDataFolderCommand}" />
+                <MenuItem Header="Use default game data folder" Command="{Binding ResetDataFolderCommand}" />
+                <Separator />
+                <MenuItem Header="Rename song folders to match title/artist on save" IsCheckable="True" IsChecked="{Binding SyncFolderNames}" />
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Command="{Binding AboutCommand}" />
+            </MenuItem>
+        </Menu>
+
+        <Rectangle DockPanel.Dock="Top" Height="2" Fill="{StaticResource DiscoGradientBrush}" />
+
+        <!-- Banners -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource WarningBannerBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                BorderThickness="0,0,0,1" Padding="12,8"
+                Visibility="{Binding IsGameRunning, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE7BA;" Foreground="{StaticResource WarningBorderBrush}" />
+                <TextBlock Margin="10,0,0,0" TextWrapping="Wrap" VerticalAlignment="Center"
+                           Text="Dead as Disco is running. It loads songs and playlists at startup, so restart the game to see changes made here." />
+            </StackPanel>
+        </Border>
+        <Border DockPanel.Dock="Top" Background="{StaticResource WarningBannerBrush}" BorderBrush="{StaticResource WarningBorderBrush}"
+                BorderThickness="0,0,0,1" Padding="12,8"
+                Visibility="{Binding DataFolderMissing, Converter={StaticResource BoolToVis}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Choose folder…" Command="{Binding ChangeDataFolderCommand}" />
+                <TextBlock VerticalAlignment="Center" TextWrapping="Wrap">
+                    <Run Text="Game data folder not found:" />
+                    <Run Text="{Binding SavedDirectory, Mode=OneWay}" FontWeight="SemiBold" />
+                    <Run Text="— run the game once, or choose the Saved folder manually." />
+                </TextBlock>
+            </DockPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="12,5">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding SavedDirectory}" />
+                <ProgressBar DockPanel.Dock="Left" IsIndeterminate="True" Width="80" Height="4" Margin="0,0,10,0"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                <TextBlock Text="{Binding Status}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <!-- Player bar -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource IconButton}" Content="&#xED3C;" ToolTip="Back 5 seconds" Command="{Binding SkipByCommand}" CommandParameter="-5" />
+                    <Button Style="{StaticResource IconButton}" ToolTip="Play / pause (Ctrl+Space)" Command="{Binding TogglePlayCommand}" Width="42">
+                        <Grid>
+                            <TextBlock Text="&#xE768;" FontFamily="{StaticResource IconFont}" Visibility="{Binding IsPlaying, Converter={StaticResource InverseBoolToVis}}" />
+                            <TextBlock Text="&#xE769;" FontFamily="{StaticResource IconFont}" Visibility="{Binding IsPlaying, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource IconButton}" Content="&#xED3D;" ToolTip="Forward 5 seconds" Command="{Binding SkipByCommand}" CommandParameter="5" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xE71A;" ToolTip="Stop" Command="{Binding StopPlaybackCommand}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="10,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding NowPlaying.Title, FallbackValue='Nothing playing', TargetNullValue='Nothing playing'}"
+                               FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding NowPlaying.ArtistsDisplay}" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               FontSize="12" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <DockPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock DockPanel.Dock="Right" Margin="10,0,0,0" Text="{Binding PositionText}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontFamily="Consolas" />
+                    <Slider x:Name="PositionSlider" Minimum="0" Maximum="{Binding PlaybackDuration}" Value="{Binding PlaybackPosition}"
+                            IsMoveToPointEnabled="True" VerticalAlignment="Center"
+                            Thumb.DragStarted="PositionSlider_DragStarted" Thumb.DragCompleted="PositionSlider_DragCompleted" />
+                </DockPanel>
+                <ToggleButton Grid.Column="3" Style="{StaticResource DiscoToggle}" Margin="14,0,0,0" IsChecked="{Binding MetronomeEnabled}" Padding="10,5"
+                              ToolTip="Play a click on every beat using the song's tempo, beat offset and tempo sections. Edits are heard live.">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE916;" />
+                        <TextBlock Style="{StaticResource IconLabel}" Text="Beat clicks" />
+                    </StackPanel>
+                </ToggleButton>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE767;" />
+                    <Slider Width="100" Margin="8,0,0,0" Minimum="0" Maximum="1" Value="{Binding Volume}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TabControl Margin="8,8,8,4" Padding="0,8,0,0">
+            <!-- ============ SONGS ============ -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8D6;" />
+                        <TextBlock Style="{StaticResource IconLabel}" Text="{Binding Songs.Count, StringFormat='Songs ({0})'}" />
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="420" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="400" MinWidth="340" />
+                    </Grid.ColumnDefinitions>
+
+                    <DockPanel>
+                        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <Grid Width="240" Margin="0,0,8,0">
+                                <TextBox Text="{Binding SongSearch, UpdateSourceTrigger=PropertyChanged}" Padding="30,5,8,5" VerticalContentAlignment="Center"
+                                         ToolTip="Search by title, artist or folder" />
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" Margin="10,0,0,0" IsHitTestVisible="False"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </Grid>
+                            <Button Style="{StaticResource AccentToolButton}" Command="{Binding ImportAudioCommand}" ToolTip="Convert mp3/wav/flac/… into game songs (or drag files onto the window)">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="Import audio" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding ImportPackCommand}" ToolTip="Import a .dadpack shared by someone else">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8B5;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="Import pack" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding ExportSongsCommand}"
+                                    CommandParameter="{Binding SelectedItems, ElementName=SongsGrid}" ToolTip="Export the selected songs as a .dadpack to share">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72D;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="Export selected" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding DeleteSongsCommand}"
+                                    CommandParameter="{Binding SelectedItems, ElementName=SongsGrid}" ToolTip="Move the selected songs to the Recycle Bin">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE74D;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="Delete" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+
+                        <DataGrid x:Name="SongsGrid" ItemsSource="{Binding SongsView}" SelectedItem="{Binding SelectedSong}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" HeadersVisibility="Column"
+                                  GridLinesVisibility="None" CanUserResizeRows="False" RowHeight="34"
+                                  MouseDoubleClick="SongsGrid_MouseDoubleClick">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="28" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE783;" Foreground="{StaticResource ErrorTextBrush}"
+                                                           ToolTip="{Binding ErrorText}" Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+                                                <TextBlock Text="●" Foreground="{StaticResource DiscoPinkBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                           ToolTip="Unsaved changes" Visibility="{Binding IsDirty, Converter={StaticResource BoolToVis}}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="2*" SortMemberPath="Title" />
+                                <DataGridTextColumn Header="Artists" Binding="{Binding ArtistsDisplay}" Width="1.5*" SortMemberPath="ArtistsDisplay" />
+                                <DataGridTextColumn Header="BPM" Binding="{Binding Tempo, StringFormat={}{0:0.##}}" Width="60" />
+                                <DataGridTextColumn Header="Length" Binding="{Binding DurationText}" Width="64" SortMemberPath="Duration" />
+                                <DataGridTextColumn Header="Playlists" Binding="{Binding PlaylistCount}" Width="72" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+                    <!-- Song editor -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0">
+                        <Grid>
+                            <TextBlock Text="Select a song to edit it." HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       Visibility="{Binding SelectedSong, Converter={StaticResource NullToVis}}" />
+                            <DockPanel DataContext="{Binding SelectedSong}" Visibility="{Binding Converter={StaticResource NotNullToVis}}">
+                                <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="14,10">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource ToolButton}" Command="{Binding DataContext.RevertSongCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" IsEnabled="{Binding IsDirty}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE7A7;" />
+                                                <TextBlock Style="{StaticResource IconLabel}" Text="Revert" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource AccentToolButton}" Margin="0" Command="{Binding DataContext.SaveSongCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" IsEnabled="{Binding IsDirty}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE74E;" />
+                                                <TextBlock Style="{StaticResource IconLabel}" Text="Save song" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14,12">
+                                    <StackPanel IsEnabled="{Binding CanEdit}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="6,0,0,0" Content="&#xE838;" ToolTip="Open song folder"
+                                                    Command="{Binding DataContext.OpenSongFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="6,0,0,0" Content="&#xE768;" ToolTip="Play this song"
+                                                    Command="{Binding DataContext.PlaySongCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                            <TextBlock Text="{Binding Title}" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding ErrorText}" Foreground="{StaticResource ErrorTextBrush}" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                   Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
+
+                                        <TextBlock Style="{StaticResource SectionHeader}" Text="DETAILS" />
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Title" />
+                                        <TextBox Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Performed by" />
+                                        <TextBox Text="{Binding Artists, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBlock Style="{StaticResource Hint}" Text="Separate multiple artists with ;" />
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Written by" />
+                                        <TextBox Text="{Binding WrittenBy, UpdateSourceTrigger=PropertyChanged}" />
+
+                                        <TextBlock Style="{StaticResource SectionHeader}" Text="TIMING" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource FieldLabel}" Text="Tempo (BPM)" />
+                                                <TextBox Text="{Binding Tempo, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.##}}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource FieldLabel}" Text="First beat (ms)" />
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="6,0,0,0" Content="&#xE916;"
+                                                            ToolTip="While this song is playing, press on a beat to use the current position as the beat offset"
+                                                            Command="{Binding DataContext.SetBeatOffsetFromPlaybackCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                                    <TextBox Text="{Binding BeatOffset, UpdateSourceTrigger=PropertyChanged}" />
+                                                </DockPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="12" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Style="{StaticResource FieldLabel}" Text="Trim start (s)" />
+                                                <TextBox Text="{Binding StartOffset, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.###}}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Style="{StaticResource FieldLabel}" Text="Trim end (s)" />
+                                                <TextBox Text="{Binding EndOffset, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.###}}" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Style="{StaticResource Hint}" Text="Turn on Beat clicks in the player bar to hear the beat grid while you adjust these." />
+
+                                        <DockPanel Margin="0,14,0,6">
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource ToolButton}" Margin="0" Padding="8,3"
+                                                    Command="{Binding DataContext.AddTempoSectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    ToolTip="Add a tempo change (at the playback position if this song is playing)">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="12" />
+                                                    <TextBlock Style="{StaticResource IconLabel}" Text="Add" />
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBlock Style="{StaticResource SectionHeader}" Margin="0" VerticalAlignment="Center" Text="TEMPO CHANGES" />
+                                        </DockPanel>
+                                        <TextBlock Margin="0,0,0,6" Text="None — the whole song uses the tempo above.">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource Hint}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding TempoSections.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <ItemsControl ItemsSource="{Binding TempoSections}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,6">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="At" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        <TextBox Grid.Column="1" Text="{Binding StartTime, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.###}}" ToolTip="Start time in seconds" />
+                                                        <TextBlock Grid.Column="2" Text="s →" VerticalAlignment="Center" Margin="6,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        <TextBox Grid.Column="3" Text="{Binding Tempo, UpdateSourceTrigger=PropertyChanged, StringFormat={}{0:0.##}}" ToolTip="Tempo in BPM" />
+                                                        <Button Grid.Column="4" Style="{StaticResource IconButton}" Margin="6,0,0,0" Content="&#xE711;" ToolTip="Remove"
+                                                                Command="{Binding DataContext.RemoveTempoSectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <TextBlock Style="{StaticResource SectionHeader}" Text="ADVANCED" />
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Level seed" />
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Margin="6,0,0,0" Content="&#xE8B1;" ToolTip="Randomise"
+                                                    Command="{Binding DataContext.NewSeedCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" />
+                                        </DockPanel>
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Folder" />
+                                        <TextBox Text="{Binding FolderName, Mode=OneWay}" IsReadOnly="True" />
+                                        <TextBlock Style="{StaticResource FieldLabel}" Text="Song ID" />
+                                        <TextBox Text="{Binding UniqueId, Mode=OneWay}" IsReadOnly="True" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ============ PLAYLISTS ============ -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE90B;" />
+                        <TextBlock Style="{StaticResource IconLabel}" Text="{Binding Playlists.Count, StringFormat='Playlists ({0})'}" />
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240" MinWidth="180" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="*" MinWidth="380" />
+                        <ColumnDefinition Width="6" />
+                        <ColumnDefinition Width="340" MinWidth="260" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Playlist list -->
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Style="{StaticResource AccentToolButton}" Command="{Binding NewPlaylistCommand}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="New" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Content="&#xE8C8;" ToolTip="Duplicate playlist" Command="{Binding DuplicatePlaylistCommand}" />
+                            <Button Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Delete playlist" Command="{Binding DeletePlaylistCommand}" />
+                            <Button Style="{StaticResource IconButton}" Content="&#xE8B5;" ToolTip="Import a song pack (songs + playlists)" Command="{Binding ImportPackCommand}" />
+                        </StackPanel>
+                        <ListBox ItemsSource="{Binding Playlists}" SelectedItem="{Binding SelectedPlaylist}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="2,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="● " Foreground="{StaticResource DiscoPinkBrush}" Visibility="{Binding IsDirty, Converter={StaticResource BoolToVis}}" ToolTip="Unsaved changes" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Summary}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+                    <!-- Playlist editor -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid>
+                            <TextBlock Text="Create or select a playlist." HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       Visibility="{Binding SelectedPlaylist, Converter={StaticResource NullToVis}}" />
+                            <DockPanel Visibility="{Binding SelectedPlaylist, Converter={StaticResource NotNullToVis}}">
+                                <Grid DockPanel.Dock="Top">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding SelectedPlaylist.Name, UpdateSourceTrigger=PropertyChanged}" FontSize="18" FontWeight="SemiBold" ToolTip="Playlist name" />
+                                    <CheckBox Grid.Column="1" Margin="12,0,0,0" IsChecked="{Binding SelectedPlaylist.Shuffle}" VerticalAlignment="Center"
+                                              ToolTip="The game plays this playlist in random order">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE8B1;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Shuffle" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                </Grid>
+                                <TextBlock DockPanel.Dock="Top" Margin="0,6,0,10" Text="{Binding SelectedPlaylist.Summary}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                                <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                    <Button Style="{StaticResource AccentToolButton}" Command="{Binding SavePlaylistCommand}" IsEnabled="{Binding SelectedPlaylist.IsDirty}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE74E;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Save" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource ToolButton}" Command="{Binding RevertPlaylistCommand}" IsEnabled="{Binding SelectedPlaylist.IsDirty}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE7A7;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Revert" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource ToolButton}" x:Name="SortButton" Click="SortButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE8CB;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Sort" />
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE70D;" FontSize="10" Margin="6,0,0,0" />
+                                        </StackPanel>
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="By title" Command="{Binding SortPlaylistCommand}" CommandParameter="title" />
+                                                <MenuItem Header="By artist" Command="{Binding SortPlaylistCommand}" CommandParameter="artist" />
+                                                <MenuItem Header="By BPM" Command="{Binding SortPlaylistCommand}" CommandParameter="bpm" />
+                                                <MenuItem Header="By length" Command="{Binding SortPlaylistCommand}" CommandParameter="length" />
+                                                <Separator />
+                                                <MenuItem Header="Reverse order" Command="{Binding SortPlaylistCommand}" CommandParameter="reverse" />
+                                                <MenuItem Header="Random order" Command="{Binding SortPlaylistCommand}" CommandParameter="random" />
+                                                <Separator />
+                                                <MenuItem Header="Remove missing songs" Command="{Binding RemoveMissingCommand}" />
+                                                <MenuItem Header="Remove all songs" Command="{Binding ClearPlaylistCommand}" />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                    <Button Style="{StaticResource ToolButton}" Command="{Binding ExportPlaylistCommand}" ToolTip="Export this playlist and its songs as a .dadpack to share">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE72D;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Export pack" />
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
+
+                                <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource IconButton}" Content="&#xE74A;" ToolTip="Move to top" Command="{Binding MoveEntriesCommand}" CommandParameter="top" />
+                                        <Button Style="{StaticResource IconButton}" Content="&#xE70E;" ToolTip="Move up" Command="{Binding MoveEntriesCommand}" CommandParameter="up" />
+                                        <Button Style="{StaticResource IconButton}" Content="&#xE70D;" ToolTip="Move down" Command="{Binding MoveEntriesCommand}" CommandParameter="down" />
+                                        <Button Style="{StaticResource IconButton}" Content="&#xE74B;" ToolTip="Move to bottom" Command="{Binding MoveEntriesCommand}" CommandParameter="bottom" />
+                                    </StackPanel>
+                                    <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Style="{StaticResource ToolButton}" Margin="0"
+                                            Command="{Binding RemoveFromPlaylistCommand}" CommandParameter="{Binding SelectedItems, ElementName=EntriesList}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" />
+                                            <TextBlock Style="{StaticResource IconLabel}" Text="Remove" />
+                                        </StackPanel>
+                                    </Button>
+                                </DockPanel>
+
+                                <Grid>
+                                    <ListBox x:Name="EntriesList" ItemsSource="{Binding SelectedPlaylist.Entries}" SelectionMode="Extended"
+                                             AllowDrop="True" HorizontalContentAlignment="Stretch"
+                                             PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown" PreviewMouseMove="EntriesList_PreviewMouseMove"
+                                             DragOver="EntriesList_DragOver" Drop="EntriesList_Drop" DragLeave="EntriesList_DragLeave"
+                                             SelectionChanged="EntriesList_SelectionChanged" MouseDoubleClick="EntriesList_MouseDoubleClick"
+                                             KeyDown="EntriesList_KeyDown">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="34" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Number}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Subtitle}" FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                                        <Run Text="{Binding Song.Tempo, Mode=OneWay, StringFormat={}{0:0.##} bpm}" />
+                                                        <Run Text="  " />
+                                                        <Run Text="{Binding Song.DurationText, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                                        <Setter Property="Opacity" Value="0.6" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
+                                    <Canvas IsHitTestVisible="False">
+                                        <Rectangle x:Name="DropIndicator" Height="2" Fill="{StaticResource DiscoPinkBrush}" Visibility="Collapsed" />
+                                    </Canvas>
+                                    <TextBlock Text="Drag songs here from the list on the right, or select them and press Add."
+                                               HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" TextWrapping="Wrap" Margin="30"
+                                               TextAlignment="Center" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedPlaylist.Entries.Count}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+
+                    <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+                    <!-- Available songs -->
+                    <DockPanel Grid.Column="4">
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionHeader}" Margin="0,0,0,8" Text="ADD SONGS" />
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBox Text="{Binding AvailableSearch, UpdateSourceTrigger=PropertyChanged}" Padding="30,5,8,5" VerticalContentAlignment="Center" />
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" Margin="10,0,0,0" IsHitTestVisible="False"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Grid>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button Style="{StaticResource AccentToolButton}" Command="{Binding AddToPlaylistCommand}"
+                                    CommandParameter="{Binding SelectedItems, ElementName=AvailableList}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" />
+                                    <TextBlock Style="{StaticResource IconLabel}" Text="Add selected" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource ToolButton}" Command="{Binding AddAllToPlaylistCommand}" Content="Add all shown" />
+                        </StackPanel>
+                        <ListBox x:Name="AvailableList" ItemsSource="{Binding AvailableView}" SelectionMode="Extended"
+                                 PreviewMouseLeftButtonDown="List_PreviewMouseLeftButtonDown" PreviewMouseMove="AvailableList_PreviewMouseMove"
+                                 MouseDoubleClick="AvailableList_MouseDoubleClick">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2">
+                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock FontSize="12" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                            <Run Text="{Binding ArtistsDisplay, Mode=OneWay}" />
+                                            <Run Text=" · " />
+                                            <Run Text="{Binding Tempo, Mode=OneWay, StringFormat={}{0:0.##} bpm}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>DaDPlaylistManager</AssemblyName>
+    <RootNamespace>DaDPlaylistManager</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <Product>Dead as Disco Playlist Manager</Product>
+    <Description>Song and playlist manager for Dead as Disco</Description>
+    <!-- ThemeMode (Fluent theme) is marked experimental in WPF. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+
+  <!-- Release packaging: dotnet publish -c Release (see build.ps1). -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- build.ps1 drops ffmpeg.exe into vendor/; when present it's embedded and extracted on first use. -->
+  <ItemGroup Condition="Exists('..\..\vendor\ffmpeg.exe')">
+    <EmbeddedResource Include="..\..\vendor\ffmpeg.exe" LogicalName="ffmpeg.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DaDPlaylistManager.Core\DaDPlaylistManager.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="NAudio.Vorbis" Version="3.0.0" />
+    <PackageReference Include="NAudio.WinMM" Version="3.3.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DaDPlaylistManager.Core/DaDPlaylistManager.Core.csproj" />
+    <Project Path="src/DaDPlaylistManager/DaDPlaylistManager.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DaDPlaylistManager.Tests/DaDPlaylistManager.Tests.csproj" />
+  </Folder>
+</Solution>
