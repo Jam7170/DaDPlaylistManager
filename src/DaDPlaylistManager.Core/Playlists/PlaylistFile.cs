@@ -205,9 +205,17 @@ public sealed class PlaylistFile
         Upsert(result, NameProp, () => new PropertyTag { Name = NameProp, Type = new PropertyType("StrProperty") })
             .Value = Write(w => w.WriteFString(Name));
 
-        var shuffle = Upsert(result, ShuffleProp, () => new PropertyTag { Name = ShuffleProp, Type = new PropertyType("BoolProperty") });
-        shuffle.Value = [];
-        shuffle.Flags = Shuffle ? shuffle.Flags | PropertyTagFlags.BoolTrue : shuffle.Flags & ~PropertyTagFlags.BoolTrue;
+        // Unreal omits properties at their default value, so the game writes bShouldShuffle only when true.
+        if (Shuffle)
+        {
+            var shuffle = Upsert(result, ShuffleProp, () => new PropertyTag { Name = ShuffleProp, Type = new PropertyType("BoolProperty") }, insertBefore: SongsProp);
+            shuffle.Value = [];
+            shuffle.Flags |= PropertyTagFlags.BoolTrue;
+        }
+        else
+        {
+            result.RemoveAll(t => t.Name == ShuffleProp);
+        }
 
         Upsert(result, SongsProp, () => new PropertyTag
         {
@@ -221,7 +229,7 @@ public sealed class PlaylistFile
         return result;
     }
 
-    private static PropertyTag Upsert(List<PropertyTag> tags, string name, Func<PropertyTag> create)
+    private static PropertyTag Upsert(List<PropertyTag> tags, string name, Func<PropertyTag> create, string? insertBefore = null)
     {
         int i = tags.FindIndex(t => t.Name == name);
         if (i >= 0)
@@ -232,7 +240,9 @@ public sealed class PlaylistFile
             return tags[i];
         }
         var tag = create();
-        tags.Add(tag);
+        int before = insertBefore is null ? -1 : tags.FindIndex(t => t.Name == insertBefore);
+        if (before >= 0) tags.Insert(before, tag);
+        else tags.Add(tag);
         return tag;
     }
 

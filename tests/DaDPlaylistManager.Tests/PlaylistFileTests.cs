@@ -43,6 +43,23 @@ public class PlaylistFileTests
     }
 
     [Fact]
+    public void Shuffle_TagOnlyWrittenWhenTrue_LikeTheGame()
+    {
+        var pl = new PlaylistFile { Name = "A", Shuffle = false };
+        pl.Entries.Add(new PlaylistEntry("x.PagodaSongCatalogSubsystem_1.Song A", 1));
+        var off = pl.Serialize();
+        Assert.DoesNotContain("bShouldShuffle", System.Text.Encoding.ASCII.GetString(off));
+
+        var parsed = PlaylistFile.Parse(off);
+        parsed.Shuffle = true;
+        var on = parsed.Serialize();
+        string text = System.Text.Encoding.ASCII.GetString(on);
+        Assert.True(text.IndexOf("bShouldShuffle", StringComparison.Ordinal) < text.IndexOf("Songs", StringComparison.Ordinal));
+        Assert.True(PlaylistFile.Parse(on).Shuffle);
+        Assert.False(PlaylistFile.Parse(off).Shuffle);
+    }
+
+    [Fact]
     public void FileName_MatchesGameGuidFormat()
     {
         var pl = new PlaylistFile { Guid = [0x96B024D7, 0x4A84B028, 0xE9D293AD, 0x48976B10] };

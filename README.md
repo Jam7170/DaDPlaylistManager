@@ -7,6 +7,7 @@ A Windows app for managing **imported songs** and **custom playlists** in *Dead 
 - **Preview with beat clicks:** play any song with a metronome overlay generated from its timing, so you can hear whether the BPM and offset line up. Edits are heard live.
 - **Import audio:** turn mp3, wav, flac, m4a, ogg and other formats into game songs. Titles and artists come from the file's tags, and BPM and first beat are estimated automatically. You can also drag files onto the window.
 - **Share song packs:** export songs, or a whole playlist with its songs, as a `.dadpack` file. Importing a pack skips songs you already have, fixes ID clashes, and rewrites machine-specific paths.
+- **Shared playlists:** sync playlists with friends through the group website (heroicgames.uk by default). Everyone adds songs from their own library and presses **Sync**. Each player then has the same songs, the same timing and the same playlist in the game, plus a **set code** to check everyone's setup matches before a challenge.
 - **Safe by default:** before the app changes a file, it copies it to `%LOCALAPPDATA%\DaDPlaylistManager\Backups` (once per session). Deleted songs go to the Recycle Bin. The app also warns you if the game is running.
 
 ## Install
@@ -15,6 +16,18 @@ Download `DaDPlaylistManager.exe` and run it. There's no installer and nothing e
 The app finds the game's data automatically at `%LOCALAPPDATA%\Pagoda\Saved`. If yours is elsewhere, use **Tools → Change game data folder**.
 
 > The game reads songs and playlists when it starts. **Restart Dead as Disco** to see changes.
+
+## Shared playlists
+
+1. Open the **Shared** tab and **sign in** with your website name and password. The app keeps only the site's login token, encrypted for your Windows account.
+2. Click **New** to create a shared playlist, or pick an existing one.
+3. Select songs under **Share from your library** and click **Share selected**. Their audio and settings are uploaded.
+4. Click **Sync**. This downloads songs you're missing, applies the shared timing, uploads any edits you've made to songs you shared, and writes a game playlist called `<name> (shared)`.
+5. Compare **set codes**. When everyone's code matches, everyone has exactly the same songs, BPM, offsets and level seeds.
+
+Rules: each song's settings belong to whoever shared it. If you edit a song someone else shared, the next sync puts their version back (your old copy goes to the backups folder). You can remove songs you added. A playlist's creator can remove any song from it, rename it, turn shuffle on or off, or delete it. With **Sync on startup** turned on, the app syncs every shared playlist you've synced before each time it opens. Restart the game afterwards to see the changes.
+
+The server side lives in the website project. It provides `/api/dad/...` endpoints, behind the site's normal login, and stores the audio in its data folder.
 
 ## How the game stores things
 
@@ -33,7 +46,7 @@ uint8  serialization control (0)
 tagged properties until "None":
   UniqueID        StructProperty<Guid>   (also the file name)
   Name            StrProperty
-  bShouldShuffle  BoolProperty
+  bShouldShuffle  BoolProperty            (only written when true)
   Songs           ArrayProperty<ObjectProperty>  (object paths as strings)
 uint32 0
 int32  N, then N × { uint32 song uniqueId, int32 index into Songs }

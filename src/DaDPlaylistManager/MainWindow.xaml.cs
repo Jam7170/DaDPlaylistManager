@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         _vm = new MainViewModel();
         DataContext = _vm;
         _vm.EntriesReordered += (_, items) => RestoreEntrySelection(items);
+        ContentRendered += async (_, _) => await _vm.AutoSyncOnStartup();
     }
 
     protected override void OnClosing(CancelEventArgs e)

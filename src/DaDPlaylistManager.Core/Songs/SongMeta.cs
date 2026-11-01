@@ -59,6 +59,38 @@ public sealed class SongMeta
 
     public SongMeta Clone() => Parse(ToJson());
 
+    /// <summary>The JSON object as a compact string (for sending to the sync server).</summary>
+    public string ToCompactJson() => _json.ToJsonString();
+
+    /// <summary>
+    /// Copies everything from <paramref name="source"/> except this machine's identity fields
+    /// (uniqueId, original audio path and hash), so shared songs play identically everywhere.
+    /// </summary>
+    public void AdoptFrom(SongMeta source)
+    {
+        uint id = UniqueId;
+        string path = OriginalAudioFilePath, hash = OriginalAudioFileHash;
+        foreach (var key in _json.Select(kv => kv.Key).ToList()) _json.Remove(key);
+        foreach (var (key, value) in source._json) _json[key] = value?.DeepClone();
+        UniqueId = id;
+        OriginalAudioFilePath = path;
+        OriginalAudioFileHash = hash;
+    }
+
+    /// <summary>True when the fields that affect gameplay or display match.</summary>
+    public bool SharedFieldsEqual(SongMeta other)
+    {
+        static JsonObject Strip(SongMeta m)
+        {
+            var c = (JsonObject)m._json.DeepClone();
+            c.Remove("uniqueId");
+            c.Remove("originalAudioFilePath");
+            c.Remove("originalAudioFileHash");
+            return c;
+        }
+        return JsonNode.DeepEquals(Strip(this), Strip(other));
+    }
+
     public string ToJson() => _json.ToJsonString(WriteOptions);
 
     public void Save(string path)
@@ -114,6 +146,9 @@ public sealed class SongMeta
         get => (int)Math.Round(GetDouble("beatOffset"));
         set => _json["beatOffset"] = value;
     }
+
+    /// <summary>Beat offset exactly as stored (the set code uses it unrounded).</summary>
+    public double BeatOffsetRaw => GetDouble("beatOffset");
 
     /// <summary>Seconds trimmed from the start of the audio.</summary>
     public double StartSongOffset
